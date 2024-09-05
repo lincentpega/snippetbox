@@ -12,6 +12,8 @@ type templateData struct {
 	Snippet     *models.Snippet
 	Snippets    []*models.Snippet
 	CurrentYear int
+	Form        any
+	Flash       string
 }
 
 var functions = template.FuncMap{
@@ -33,8 +35,8 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	for _, page := range pages {
 		name := filepath.Base(page)
 
-        ts := template.New(name)
-        ts.Funcs(functions)
+		ts := template.New(name)
+		ts.Funcs(functions)
 		ts, err := ts.ParseFiles("./ui/html/base.html")
 		if err != nil {
 			return nil, err
