@@ -1,9 +1,12 @@
 package validator
 
 import (
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
+
+var EmailRX = regexp.MustCompile(`[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+`)
 
 type Validator struct {
 	FieldErrors map[string]string
@@ -25,24 +28,32 @@ func (v *Validator) AddFieldError(key, message string) {
 
 func (v *Validator) CheckField(ok bool, key, message string) {
 	if !ok {
-        v.AddFieldError(key, message)
+		v.AddFieldError(key, message)
 	}
 }
 
 func NotBlank(value string) bool {
-    return strings.TrimSpace(value) != ""
+	return strings.TrimSpace(value) != ""
 }
 
 func MaxChars(value string, n int) bool {
-    return utf8.RuneCountInString(value) <= n
+	return utf8.RuneCountInString(value) <= n
 }
 
 func PermittedInt(value int, permittedValues ...int) bool {
-    for i := range permittedValues {
-        if value == permittedValues[i] {
-            return true
-        }
-    }
+	for i := range permittedValues {
+		if value == permittedValues[i] {
+			return true
+		}
+	}
 
-    return false
+	return false
+}
+
+func MinChars(value string, n int) bool {
+    return utf8.RuneCountInString(value) >= n
+}
+
+func Matches(value string, rx *regexp.Regexp) bool {
+    return rx.MatchString(value)
 }

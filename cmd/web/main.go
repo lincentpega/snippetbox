@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"html/template"
@@ -17,12 +18,13 @@ import (
 )
 
 type application struct {
-	errorLog      *log.Logger
-	infoLog       *log.Logger
-	snippets      *models.SnippetModel
-	templateCache map[string]*template.Template
-	formDecoder   *form.Decoder
-    sessionManager *scs.SessionManager
+	errorLog       *log.Logger
+	infoLog        *log.Logger
+	snippets       *models.SnippetModel
+	users          *models.UserModel
+	templateCache  map[string]*template.Template
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -44,26 +46,35 @@ func main() {
 		errorLog.Fatal(err)
 	}
 
-    sessionManager := scs.New()
-    sessionManager.Store = mysqlstore.New(db)
-    sessionManager.Lifetime = 12 * time.Hour
-    sessionManager.Cookie.Secure = true
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Secure = true
 
 	app := &application{
-		errorLog:      errorLog,
-		infoLog:       infoLog,
-		snippets:      &models.SnippetModel{DB: db},
-		templateCache: templateCache,
-        formDecoder: form.NewDecoder(),
-        sessionManager: sessionManager,
+		errorLog:       errorLog,
+		infoLog:        infoLog,
+		snippets:       &models.SnippetModel{DB: db},
+		users:          &models.UserModel{DB: db},
+		templateCache:  templateCache,
+		formDecoder:    form.NewDecoder(),
+		sessionManager: sessionManager,
 	}
 
 	mux := app.routes()
 
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
+
 	srv := &http.Server{
-		Addr:     *addr,
-		ErrorLog: errorLog,
-		Handler:  mux,
+		Addr:         *addr,
+		ErrorLog:     errorLog,
+		Handler:      mux,
+		TLSConfig:    tlsConfig,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	infoLog.Printf("Starting server on %s", *addr)
